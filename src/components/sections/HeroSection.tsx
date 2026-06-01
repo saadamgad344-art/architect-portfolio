@@ -44,7 +44,7 @@ export default function HeroSection() {
   let charIndex = 0;
 
   return (
-    <section className="relative w-full h-screen flex flex-col justify-center items-start px-16 overflow-hidden">
+    <section className="relative w-full h-screen flex flex-col justify-center items-start px-6 md:px-16 overflow-hidden">
 
       {/* خلفية */}
       <div className="absolute inset-0 bg-[#080808]" />
@@ -69,7 +69,7 @@ export default function HeroSection() {
         initial={{ scaleY: 0 }}
         animate={{ scaleY: 1 }}
         transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
-        className="absolute left-16 top-0 w-[1px] h-full bg-white/5 origin-top"
+        className="absolute left-6 md:left-16 top-0 w-[1px] h-full bg-white/5 origin-top"
       />
 
       {/* رقم السنة */}
@@ -86,7 +86,7 @@ export default function HeroSection() {
       <div className="relative z-10">
         <h1
           ref={titleRef}
-          className="text-[11vw] font-thin tracking-[-0.03em] leading-[0.9] text-white/90 uppercase"
+          className="text-[18vw] md:text-[11vw] font-thin tracking-[-0.03em] leading-[0.9] text-white/90 uppercase"
         >
           {[line1, line2, line3].map((line, li) => (
             <div key={li} className="overflow-hidden">
@@ -123,7 +123,7 @@ export default function HeroSection() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 2.2, duration: 1 }}
-        className="absolute bottom-12 left-16 flex items-center gap-4"
+        className="absolute bottom-8 left-6 md:bottom-12 md:left-16 flex items-center gap-4"
       >
         <motion.div
           animate={{ y: [0, 10, 0] }}
@@ -138,7 +138,7 @@ export default function HeroSection() {
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 2, duration: 1.2 }}
-        className="absolute bottom-12 right-16 w-16 h-16 border border-white/10 rounded-full"
+        className="absolute bottom-8 right-6 md:bottom-12 md:right-16 w-12 h-12 md:w-16 md:h-16 border border-white/10 rounded-full"
       />
 
     </section>

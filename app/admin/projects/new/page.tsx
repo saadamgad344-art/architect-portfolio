@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -21,10 +21,17 @@ export default function NewProject() {
     year: new Date().getFullYear(),
     featured: false,
   });
+  
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState('');
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
 
+useEffect(() => {
+  supabase.from('categories').select('*').order('created_at').then(({ data }) => {
+    setCategories(data || []);
+  });
+}, []);
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
@@ -210,16 +217,22 @@ export default function NewProject() {
         </div>
 
         {/* Category & Location */}
-        <div className="grid grid-cols-2 gap-8">
-          <div className="flex flex-col gap-3">
-            <label className="text-xs tracking-widest uppercase text-white/40">Category</label>
-            <input
-              name="category"
-              value={form.category}
-              onChange={handleChange}
-              className="bg-transparent border-b border-white/20 text-white/80 py-3 outline-none focus:border-white/60 transition-colors"
-            />
-          </div>
+      {/* Category & Location */}
+<div className="grid grid-cols-2 gap-8">
+  <div className="flex flex-col gap-3">
+    <label className="text-xs tracking-widest uppercase text-white/40">Category</label>
+    <select
+      name="category"
+      value={form.category}
+      onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
+      className="bg-[#080808] border-b border-white/20 text-white/80 py-3 outline-none focus:border-white/60 transition-colors cursor-pointer"
+    >
+      <option value="">— Select —</option>
+      {categories.map((cat) => (
+        <option key={cat.id} value={cat.name}>{cat.name}</option>
+      ))}
+    </select>
+  </div>
           <div className="flex flex-col gap-3">
             <label className="text-xs tracking-widest uppercase text-white/40">Location</label>
             <input

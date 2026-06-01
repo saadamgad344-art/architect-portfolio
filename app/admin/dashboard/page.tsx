@@ -7,12 +7,16 @@ import { supabase } from '@/lib/supabase';
 
 export default function AdminDashboard() {
   const [projects, setProjects] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newCategory, setNewCategory] = useState('');
+  const [addingCategory, setAddingCategory] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     checkSession();
     fetchProjects();
+    fetchCategories();
   }, []);
 
   async function checkSession() {
@@ -27,6 +31,29 @@ export default function AdminDashboard() {
       .order('created_at', { ascending: false });
     setProjects(data || []);
     setLoading(false);
+  }
+
+  async function fetchCategories() {
+    const { data } = await supabase
+      .from('categories')
+      .select('*')
+      .order('created_at', { ascending: true });
+    setCategories(data || []);
+  }
+
+  async function handleAddCategory() {
+    if (!newCategory.trim()) return;
+    setAddingCategory(true);
+    await supabase.from('categories').insert({ name: newCategory.trim() });
+    setNewCategory('');
+    await fetchCategories();
+    setAddingCategory(false);
+  }
+
+  async function handleDeleteCategory(id: string) {
+    if (!confirm('Delete this category?')) return;
+    await supabase.from('categories').delete().eq('id', id);
+    fetchCategories();
   }
 
   async function handleDelete(id: string) {
@@ -63,63 +90,114 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Projects */}
-      <div className="px-12 py-12">
-        <p className="text-xs tracking-widest uppercase text-white/20 mb-10">
-          Projects ({projects.length})
-        </p>
+      <div className="px-12 py-12 flex flex-col gap-16">
 
-        {loading ? (
-          <p className="text-white/20 text-sm animate-pulse">Loading...</p>
-        ) : projects.length === 0 ? (
-          <p className="text-white/20 text-sm">No projects yet.</p>
-        ) : (
-          <div className="grid grid-cols-3 gap-6">
-            {projects.map((project) => (
-              <div
-                key={project.id}
-                className="group border border-white/10 hover:border-white/30 transition-all duration-300"
-              >
-                {/* Cover Image */}
-                <div className="relative aspect-[4/3] overflow-hidden bg-white/5">
-                  {project.cover_image ? (
-                    <img
-                      src={project.cover_image}
-                      alt={project.title}
-                      className="w-full h-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-105 transition-all duration-500"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-white/20 text-xs tracking-widest uppercase">No Image</span>
-                    </div>
-                  )}
+        {/* Categories Section */}
+        <div>
+          <p className="text-xs tracking-widest uppercase text-white/20 mb-6">
+            Categories ({categories.length})
+          </p>
+
+          {/* Add Category */}
+          <div className="flex gap-4 mb-6">
+            <input
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+              placeholder="Category name..."
+              className="bg-transparent border-b border-white/20 text-white/80 py-2 px-0 outline-none focus:border-white/60 transition-colors text-sm tracking-wide flex-1 max-w-xs placeholder:text-white/20"
+            />
+            <button
+              onClick={handleAddCategory}
+              disabled={addingCategory || !newCategory.trim()}
+              className="text-xs tracking-widest uppercase border border-white/20 px-5 py-2 hover:bg-white/5 transition-colors disabled:opacity-30"
+            >
+              {addingCategory ? '...' : '+ Add'}
+            </button>
+          </div>
+
+          {/* Categories List */}
+          {categories.length === 0 ? (
+            <p className="text-white/20 text-xs tracking-widest">No categories yet.</p>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              {categories.map((cat) => (
+                <div
+                  key={cat.id}
+                  className="flex items-center gap-3 border border-white/10 px-4 py-2 group hover:border-white/30 transition-colors"
+                >
+                  <span className="text-xs tracking-widest uppercase text-white/60">{cat.name}</span>
+                  <button
+                    onClick={() => handleDeleteCategory(cat.id)}
+                    className="text-white/20 hover:text-red-400 transition-colors text-xs opacity-0 group-hover:opacity-100"
+                  >
+                    ✕
+                  </button>
                 </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-                {/* Info */}
-                <div className="p-5">
-                  <h3 className="text-white/80 font-light text-base mb-1">{project.title}</h3>
-                  <p className="text-white/30 text-xs tracking-widest uppercase mb-5">
-                    {project.category || '—'} · {project.year}
-                  </p>
-                  <div className="flex gap-5 border-t border-white/10 pt-4">
-                    <button
-                      onClick={() => router.push(`/admin/projects/${project.id}/edit`)}
-                      className="text-xs tracking-widest uppercase text-white/40 hover:text-white/80 transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(project.id)}
-                      className="text-xs tracking-widest uppercase text-red-400/50 hover:text-red-400 transition-colors"
-                    >
-                      Delete
-                    </button>
+        {/* Divider */}
+        <div className="h-[1px] bg-white/5" />
+
+        {/* Projects Section */}
+        <div>
+          <p className="text-xs tracking-widest uppercase text-white/20 mb-10">
+            Projects ({projects.length})
+          </p>
+
+          {loading ? (
+            <p className="text-white/20 text-sm animate-pulse">Loading...</p>
+          ) : projects.length === 0 ? (
+            <p className="text-white/20 text-sm">No projects yet.</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-6">
+              {projects.map((project) => (
+                <div
+                  key={project.id}
+                  className="group border border-white/10 hover:border-white/30 transition-all duration-300"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden bg-white/5">
+                    {project.cover_image ? (
+                      <img
+                        src={project.cover_image}
+                        alt={project.title}
+                        className="w-full h-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-105 transition-all duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-white/20 text-xs tracking-widest uppercase">No Image</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-5">
+                    <h3 className="text-white/80 font-light text-base mb-1">{project.title}</h3>
+                    <p className="text-white/30 text-xs tracking-widest uppercase mb-5">
+                      {project.category || '—'} · {project.year}
+                    </p>
+                    <div className="flex gap-5 border-t border-white/10 pt-4">
+                      <button
+                        onClick={() => router.push(`/admin/projects/${project.id}/edit`)}
+                        className="text-xs tracking-widest uppercase text-white/40 hover:text-white/80 transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(project.id)}
+                        className="text-xs tracking-widest uppercase text-red-400/50 hover:text-red-400 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -21,14 +21,14 @@ export default function ProfilePage() {
     projects_count: '',
     awards_count: '',
     countries_count: '',
+    avatar_url: '',
   });
- 
   useEffect(() => {
     async function load() {
       const { data } = await supabase.from('profile').select('*').maybeSingle();
       if (data) {
         setProfileId(data.id);
-        setForm({
+      setForm({
           name: data.name || '',
           bio: data.bio || '',
           email: data.email || '',
@@ -41,6 +41,7 @@ export default function ProfilePage() {
           projects_count: data.projects_count || '',
           awards_count: data.awards_count || '',
           countries_count: data.countries_count || '',
+          avatar_url: data.avatar_url || '',
         });
       }
     }
@@ -51,7 +52,7 @@ export default function ProfilePage() {
     e.preventDefault();
     setLoading(true);
  
-    const { error } = await supabase.from('profile').update({
+   const { error } = await supabase.from('profile').update({
       name: form.name,
       bio: form.bio,
       email: form.email,
@@ -64,8 +65,9 @@ export default function ProfilePage() {
       projects_count: form.projects_count,
       awards_count: form.awards_count,
       countries_count: form.countries_count,
+      avatar_url: form.avatar_url,
     }).eq('id', profileId);
- 
+    
     if (error) console.error('Save error:', error);
     setLoading(false);
     alert('Saved!');
@@ -84,7 +86,30 @@ export default function ProfilePage() {
       </div>
  
       <form onSubmit={handleSubmit} className="max-w-2xl mx-auto px-12 py-10 flex flex-col gap-8">
- 
+     {/* Avatar Upload */}
+       <div className="flex flex-col gap-3">
+       <label className="text-xs tracking-widest uppercase text-white/40">Profile Photo</label>
+        {form.avatar_url && (
+        <img src={form.avatar_url} alt="Avatar" className="w-24 h-24 object-cover rounded-full border border-white/20 mb-2" />
+        )}
+  <input
+    type="file"
+    accept="image/*"
+    onChange={async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const ext = file.name.split('.').pop();
+      const fileName = `avatar-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from('projects').upload(fileName, file, { upsert: true });
+      if (!error) {
+        const { data } = supabase.storage.from('projects').getPublicUrl(fileName);
+        setForm(p => ({ ...p, avatar_url: data.publicUrl }));
+      }
+    }}
+    className="text-sm text-white/40 file:mr-4 file:py-2 file:px-4 file:border file:border-white/20 file:bg-transparent file:text-white/60 file:text-xs file:tracking-widest file:uppercase hover:file:bg-white/5"
+  />
+</div>
+
         {/* Basic Info */}
         <div className="flex flex-col gap-3">
           <label className="text-xs tracking-widest uppercase text-white/40">Name</label>

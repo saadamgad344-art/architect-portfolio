@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 type Profile = {
@@ -14,14 +13,15 @@ type Profile = {
   facebook: string;
   linkedin: string;
   behance: string;
+  avatar_url: string;
 };
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [lastY, setLastY] = useState(0);
-  const [lang, setLang] = useState<'EN' | 'AR'>('EN');
   const [openProfile, setOpenProfile] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
@@ -36,11 +36,9 @@ export default function Navbar() {
   }, [lastY]);
 
   useEffect(() => {
-    async function load() {
-      const { data } = await supabase.from('profile').select('*').single();
+    supabase.from('profile').select('*').single().then(({ data }) => {
       if (data) setProfile(data);
-    }
-    load();
+    });
   }, []);
 
   const socials = [
@@ -56,124 +54,148 @@ export default function Navbar() {
     },
   ].filter((s) => s.href);
 
-  const links = ['Work', 'About', 'Contact'];
+  const links = [
+    { label: 'Work', href: '#work' },
+    { label: 'About', href: '#about' },
+    { label: 'Contact', href: '#contact' },
+  ];
 
   return (
     <>
       <motion.nav
         animate={{ y: hidden ? -100 : 0 }}
         transition={{ duration: 0.4, ease: 'easeInOut' }}
-        className={`fixed top-0 left-0 w-full z-50 px-16 py-6 flex items-center justify-between transition-all duration-500 ${
-          scrolled ? 'backdrop-blur-md bg-black/20 border-b border-white/5' : ''
+        className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
+          scrolled ? 'backdrop-blur-md bg-black/30 border-b border-white/5' : ''
         }`}
       >
-        {/* Logo — يفتح بيانات المهندس */}
-        <motion.button
-          onClick={() => setOpenProfile(true)}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          className="w-10 h-10 rounded-full border border-white/30 overflow-hidden hover:border-white/60 transition-colors"
-        >
-          <img src="/logo2.png" alt="Logo" className="w-full h-full object-cover" />
-        </motion.button>
+        <div className="flex items-center justify-between px-6 md:px-16 py-5">
 
-        {/* Links */}
-        <div className="flex items-center gap-12">
-          {links.map((link) => (
-            <Link
-              key={link}
-              href={`#${link.toLowerCase()}`}
-              className="text-white/40 text-xs tracking-widest uppercase hover:text-white/90 transition-colors duration-300"
-            >
-              {link}
-            </Link>
-          ))}
+          {/* Logo */}
+          <motion.button
+            onClick={() => setOpenProfile(true)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative w-12 h-12 md:w-14 md:h-14 rounded-full border border-white/20 overflow-hidden hover:border-white/50 transition-colors duration-300 flex-shrink-0"
+          >
+            <img
+              src={profile?.avatar_url || '/logo2.png'}
+              alt="Logo"
+              className="w-full h-full object-cover"
+            />
+          </motion.button>
 
-          {/* Language Toggle */}
-         
-        </div>
+          {/* Desktop Links */}
+          <div className="hidden md:flex items-center gap-16">
+            {links.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                className="text-white/50 text-sm tracking-[0.25em] uppercase hover:text-white transition-colors duration-300 relative group"
+              >
+                {link.label}
+                <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-white/40 group-hover:w-full transition-all duration-300" />
+              </a>
+            ))}
+          </div>
+
+          {/* Mobile Menu Button */}
+     
+<div className="flex md:hidden items-center gap-5">
+  {links.map((link) => (
+    <a
+      key={link.label}
+      href={link.href}
+      className="text-white/50 text-xs tracking-[0.2em] uppercase hover:text-white transition-colors duration-300"
+    >
+      {link.label}
+    </a>
+  ))}
+</div>
+</div>
+        
       </motion.nav>
 
       {/* Profile Modal */}
       <AnimatePresence>
         {openProfile && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpenProfile(false)}
-              className="fixed inset-0 z-[99990] bg-black/60 backdrop-blur-sm"
+              className="fixed inset-0 z-[99990] bg-black/70 backdrop-blur-sm"
             />
 
-            {/* Card */}
             <motion.div
-              initial={{ opacity: 0, y: -20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              initial={{ opacity: 0, x: -40, scale: 0.97 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -20, scale: 0.97 }}
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed top-20 left-8 z-[99991] w-80 bg-[#0f0f0f] border border-white/10 p-8"
+              className="fixed top-0 left-0 bottom-0 z-[99991] w-full max-w-sm bg-[#0a0a0a] border-r border-white/10 flex flex-col"
             >
-              {/* Header */}
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 rounded-full overflow-hidden border border-white/20">
-                  <img src="/logo2.png" alt="Logo" className="w-full h-full object-cover" />
-                </div>
-                <div>
-                  <h3 className="text-white/90 font-light text-base">
-                    {profile?.name || 'Abdullah Al-Saeed'}
-                  </h3>
-                  <p className="text-white/30 text-xs tracking-widest uppercase mt-1">
-                    Architect
-                  </p>
-                </div>
+              {/* Avatar Header */}
+              <div className="relative h-48 overflow-hidden flex-shrink-0">
+                {profile?.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt={profile.name}
+                    className="w-full h-full object-cover opacity-60"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-white/5" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
+                <button
+                  onClick={() => setOpenProfile(false)}
+                  className="absolute top-4 right-4 text-white/30 hover:text-white/80 transition-colors text-sm"
+                >
+                  ✕
+                </button>
               </div>
 
-              {/* Divider */}
-              <div className="w-full h-[1px] bg-white/10 mb-6" />
+              {/* Content */}
+              <div className="flex flex-col flex-1 overflow-y-auto px-8 pb-8 -mt-6">
+                <h3 className="text-white/90 text-xl font-light mb-1">
+                  {profile?.name || 'Abdullah Al-Saeed'}
+                </h3>
+                <p className="text-white/30 text-xs tracking-widest uppercase mb-6">Architect</p>
 
-              {/* Bio */}
-              {profile?.bio && (
-                <p className="text-white/40 text-sm font-light leading-relaxed mb-6">
-                  {profile.bio}
-                </p>
-              )}
+                <div className="w-full h-[1px] bg-white/10 mb-6" />
 
-              {/* Email */}
-              {profile?.email && (
-                <a
-                  href={`mailto:${profile.email}`}
-                  className="text-white/50 text-xs tracking-widest hover:text-white/90 transition-colors block mb-6"
-                >
-                  {profile.email}
-                </a>
-              )}
+                {profile?.bio && (
+                  <p className="text-white/40 text-sm font-light leading-relaxed mb-6">
+                    {profile.bio}
+                  </p>
+                )}
 
-              {/* Socials */}
-              {socials.length > 0 && (
-                <div className="flex flex-wrap gap-4">
-                  {socials.map((s) => (
-                    <a
-                      key={s.label}
-                      href={s.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-white/30 text-xs tracking-widest uppercase hover:text-white/80 transition-colors"
-                    >
-                      {s.label} ↗
-                    </a>
-                  ))}
-                </div>
-              )}
+                {profile?.email && (
+                  <a
+                    href={`mailto:${profile.email}`}
+                    className="text-white/40 text-xs tracking-widest hover:text-white/80 transition-colors block mb-8"
+                  >
+                    {profile.email}
+                  </a>
+                )}
 
-              {/* Close */}
-              <button
-                onClick={() => setOpenProfile(false)}
-                className="absolute top-4 right-4 text-white/20 hover:text-white/60 transition-colors text-xs"
-              >
-                ✕
-              </button>
+                {socials.length > 0 && (
+                  <div className="flex flex-col gap-3 mt-auto">
+                    {socials.map((s) => (
+                      <a
+                        key={s.label}
+                        href={s.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between text-white/30 text-xs tracking-widest uppercase hover:text-white/80 transition-colors border-b border-white/5 pb-3"
+                      >
+                        {s.label}
+                        <span>↗</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
             </motion.div>
           </>
         )}

@@ -219,24 +219,24 @@ function FullscreenProject({
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             className="absolute inset-0"
           >
-            {current?.type === 'video' ? (
-              <video
-                src={current.url}
-                autoPlay
-                muted
-                loop
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            ) : (
-              <motion.img
-                src={current?.url}
-                alt={project.title}
-                className="absolute inset-0 w-full h-full object-cover"
-                initial={{ scale: 1.4, filter: 'blur(20px)' }}
-                animate={{ scale: 1, filter: 'blur(0px)' }}
-                transition={{ duration: 12, ease: [0.22, 1, 0.36, 1] }}
-              />
-            )}
+         {current?.type === 'video' ? (
+  <video
+    src={current.url}
+    autoPlay
+    muted
+    loop
+    className="absolute inset-0 w-full h-full object-contain md:object-cover"
+  />
+) : (
+  <motion.img
+    src={current?.url}
+    alt={project.title}
+    className="absolute inset-0 w-full h-full object-contain md:object-cover"
+    initial={{ scale: 1.4, filter: 'blur(20px)' }}
+    animate={{ scale: 1, filter: 'blur(0px)' }}
+    transition={{ duration: 12, ease: [0.22, 1, 0.36, 1] }}
+  />
+)}
           </motion.div>
         </AnimatePresence>
 
@@ -285,7 +285,7 @@ function FullscreenProject({
           initial={{ opacity: 0, y: 80 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, duration: 1.6, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute bottom-16 left-16 max-w-2xl z-10"
+          className="absolute bottom-8 left-4 right-4 md:bottom-16 md:left-16 md:right-auto md:max-w-2xl z-10"
         >
           <motion.div
             initial={{ opacity: 0 }}
@@ -300,7 +300,7 @@ function FullscreenProject({
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 2.5, duration: 4, ease: [0.22, 1, 0.36, 1] }}
-            className="text-white text-7xl font-thin tracking-tight leading-none"
+            className="text-white text-4xl md:text-7xl font-thin tracking-tight leading-none"
           >
             {project.title}
           </motion.h1>
@@ -638,192 +638,214 @@ function ProjectCard({
   );
 }
 
+function AutoScrollCategories({
+  categories,
+  activeFilter,
+  setActiveFilter,
+}: {
+  categories: string[];
+  activeFilter: string;
+  setActiveFilter: (cat: string) => void;
+}) {
+  const x = useMotionValue(0);
+  const animRef = useRef<ReturnType<typeof animate> | null>(null);
+  const isDragging = useRef(false);
+  const ITEM_W = typeof window !== 'undefined' && window.innerWidth < 768 ? 120 : 180;
+  const totalW = ITEM_W * categories.length;
+
+  // كرر الـ categories عدد كفاية عشان يملى الشاشة من الأول
+ const repeated = Array(Math.max(8, Math.ceil(2000 / (ITEM_W * categories.length)) * categories.length))
+  .fill(categories)
+  .flat();
+
+  const startLoop = (from: number) => {
+    animRef.current?.stop();
+    animRef.current = animate(x, [from, from - totalW], {
+      duration: categories.length * 6,
+      ease: 'linear',
+      repeat: Infinity,
+      repeatType: 'loop',
+    });
+  };
+
+  useEffect(() => {
+    x.set(0);
+    startLoop(0);
+    return () => animRef.current?.stop();
+  }, [categories.length]);
+
+  const handleClick = (cat: string) => {
+    if (!isDragging.current) setActiveFilter(cat);
+  };
+
+  return (
+    <div className="overflow-hidden py-2">
+      <motion.div
+        style={{ x }}
+        drag="x"
+        dragConstraints={{ left: -totalW * 3, right: 0 }}
+        dragElastic={0}
+        onDragStart={() => {
+          isDragging.current = true;
+          animRef.current?.stop();
+        }}
+        onDragEnd={() => {
+          setTimeout(() => { isDragging.current = false; }, 100);
+          // يكمل من نفس المكان اللي وقف فيه
+          startLoop(x.get());
+        }}
+        className="flex gap-4 w-max cursor-grab active:cursor-grabbing"
+      >
+        {repeated.map((cat, i) => (
+          <motion.button
+            key={`${cat}-${i}`}
+            onClick={() => handleClick(cat)}
+            className={`relative flex-shrink-0 tracking-[0.2em] uppercase transition-all duration-300
+              text-sm md:text-base px-8 py-4
+              ${activeFilter === cat ? 'text-white' : 'text-white/35 hover:text-white/70'}
+            `}
+            style={{ minWidth: ITEM_W }}
+          >
+            {activeFilter === cat && (
+              <motion.div
+                layoutId={`cat-${i % categories.length}`}
+                className="absolute inset-0 border border-white/30 bg-white/5 rounded-sm"
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              />
+            )}
+            <span className="relative z-10 font-light">{cat}</span>
+          </motion.button>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
+
 /* ─────────────────────────────────────────────
    MAIN SECTION
 ───────────────────────────────────────────── */
 
 export default function ProjectsSection() {
-  const [projects, setProjects] =
-    useState<Project[]>([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [activeProject, setActiveProject] =
-    useState<Project | null>(null);
-
-  const [activeMode, setActiveMode] =
-    useState<TransitionMode>('zoom');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [activeFilter, setActiveFilter] = useState<string>('All');
+  const [loading, setLoading] = useState(true);
+  const [activeProject, setActiveProject] = useState<Project | null>(null);
+  const [activeMode, setActiveMode] = useState<TransitionMode>('zoom');
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', {
-          ascending: false,
-        });
-
-      setProjects(data || []);
+      const [{ data: projects }, { data: cats }] = await Promise.all([
+        supabase.from('projects').select('*').order('created_at', { ascending: false }),
+        supabase.from('categories').select('name').order('created_at'),
+      ]);
+      setProjects(projects || []);
+      setCategories(['All', ...(cats?.map((c: any) => c.name) || [])]);
       setLoading(false);
     }
-
     load();
   }, []);
 
+  const filtered = activeFilter === 'All'
+    ? projects
+    : projects.filter((p) => p.category === activeFilter);
+
   const groups: Project[][] = [];
-
   let i = 0;
-
-  while (i < projects.length) {
-    if (i % 3 === 0) {
-      groups.push([projects[i]]);
-      i++;
-    } else {
-      groups.push(projects.slice(i, i + 2));
-      i += 2;
-    }
+  while (i < filtered.length) {
+    if (i % 3 === 0) { groups.push([filtered[i]]); i++; }
+    else { groups.push(filtered.slice(i, i + 2)); i += 2; }
   }
 
-  const allImages = projects
-    .map((p) => p.cover_image)
-    .filter(Boolean);
+  const allImages = projects.map((p) => p.cover_image).filter(Boolean);
 
-  const openProject = (
-    project: Project
-  ) => {
+  const openProject = (project: Project) => {
     setActiveProject(project);
-
-    const mode =
-      getProjectMode(project.id);
-
-    setActiveMode(mode);
-
-    document.body.style.overflow =
-      'hidden';
+    setActiveMode(getProjectMode(project.id));
+    document.body.style.overflow = 'hidden';
   };
 
   const closeProject = () => {
     setActiveProject(null);
-
-    document.body.style.overflow =
-      'auto';
+    document.body.style.overflow = 'auto';
   };
 
   const renderGroups = () => {
     const elements: React.ReactNode[] = [];
-
     let stripCount = 0;
-
     groups.forEach((group, gi) => {
       elements.push(
         group.length === 1 ? (
-          <ProjectCard
-            key={group[0].id}
-            project={group[0]}
-            index={gi}
-            large
-            onOpen={openProject}
-          />
+          <ProjectCard key={group[0].id} project={group[0]} index={gi} large onOpen={openProject} />
         ) : (
-          <div
-            key={gi}
-            className="grid grid-cols-2 gap-x-8"
-          >
+          <div key={gi} className="grid grid-cols-2 gap-x-8">
             {group.map((p, pi) => (
-              <ProjectCard
-                key={p.id}
-                project={p}
-                index={gi + pi}
-                onOpen={openProject}
-              />
+              <ProjectCard key={p.id} project={p} index={gi + pi} onOpen={openProject} />
             ))}
           </div>
         )
       );
-
-      if (
-        (gi + 1) % 3 === 0 &&
-        allImages.length >= 4
-      ) {
+      if ((gi + 1) % 3 === 0 && allImages.length >= 4) {
         stripCount++;
-
         elements.push(
-          <div
-            key={`strip-${stripCount}`}
-            className="-mx-16"
-          >
-            <ImageStrip
-              images={allImages}
-            />
+          <div key={`strip-${stripCount}`} className="-mx-16">
+            <ImageStrip images={allImages} />
           </div>
         );
       }
     });
-
     return elements;
   };
 
   return (
     <>
-      <section
-        id="work"
-        className="relative py-32 px-16"
-      >
+      <section id="work" className="relative pt-16 pb-32 px-16">
 
         <motion.div
-          initial={{
-            opacity: 0,
-            y: 30,
-          }}
-          whileInView={{
-            opacity: 1,
-            y: 0,
-          }}
-          viewport={{
-            once: true,
-          }}
-          transition={{
-            duration: 0.8,
-          }}
-          className="mb-24 flex items-end justify-between"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="mb-12 flex items-end justify-between"
         >
-
           <div>
-            <span className="text-white/30 text-xs tracking-widest uppercase">
-              Selected Work
-            </span>
-
-            <h2 className="mt-3 text-5xl font-thin text-white/90 tracking-tight">
-              Projects
-            </h2>
+            <span className="text-white/30 text-xs tracking-widest uppercase">Selected Work</span>
+            <h2 className="mt-3 text-5xl font-thin text-white/90 tracking-tight">Projects</h2>
           </div>
-
-          <span className="text-white/20 text-xs tracking-widest">
-            ( {projects.length} )
-          </span>
+          <span className="text-white/20 text-xs tracking-widest">( {filtered.length} )</span>
         </motion.div>
+
+ {/* Category Filter — auto-scrolling */}
+{categories.length > 1 && (
+  <div style={{ marginTop: '4rem', marginBottom: '5rem', position: 'relative' }}>
+    <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-[#080808] to-transparent z-10 pointer-events-none" />
+    <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-[#080808] to-transparent z-10 pointer-events-none" />
+    <AutoScrollCategories
+      categories={categories}
+      activeFilter={activeFilter}
+      setActiveFilter={setActiveFilter}
+    />
+  </div>
+)}
+
 
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <span className="text-white/20 text-xs tracking-widest uppercase animate-pulse">
-              Loading...
-            </span>
+            <span className="text-white/20 text-xs tracking-widest uppercase animate-pulse">Loading...</span>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex items-center justify-center h-64">
+            <span className="text-white/20 text-xs tracking-widest uppercase">No projects in this category</span>
           </div>
         ) : (
-          <div className="flex flex-col gap-24">
-            {renderGroups()}
-          </div>
+          <div className="flex flex-col gap-24">{renderGroups()}</div>
         )}
       </section>
 
       <AnimatePresence mode="wait">
         {activeProject && (
-          <FullscreenProject
-            project={activeProject}
-            mode={activeMode}
-            onClose={closeProject}
-          />
+          <FullscreenProject project={activeProject} mode={activeMode} onClose={closeProject} />
         )}
       </AnimatePresence>
     </>

@@ -4,10 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
-  useMemo,
 } from 'react';
-
-import Link from 'next/link';
 
 import {
   motion,
@@ -34,6 +31,7 @@ type Project = {
   description: string;
   media: { url: string; type: 'image' | 'video' }[];
 };
+
 /* ─────────────────────────────────────────────
    TRANSITION ENGINE
 ───────────────────────────────────────────── */
@@ -53,12 +51,10 @@ type TransitionMode = (typeof transitionModes)[number];
 
 function getProjectMode(id: string): TransitionMode {
   let hash = 0;
-
   for (let i = 0; i < id.length; i++) {
     hash = (hash << 5) - hash + id.charCodeAt(i);
     hash |= 0;
   }
-
   return transitionModes[Math.abs(hash) % transitionModes.length];
 }
 
@@ -66,80 +62,51 @@ function getProjectMode(id: string): TransitionMode {
    IMAGE STRIP
 ───────────────────────────────────────────── */
 
-function ImageStrip({
-  images,
-}: {
-  images: string[];
-}) {
+function ImageStrip({ images }: { images: string[] }) {
   const x = useMotionValue(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const animRef = useRef<ReturnType<typeof animate> | null>(null);
 
-  const containerRef =
-    useRef<HTMLDivElement>(null);
-
-  const animRef =
-    useRef<ReturnType<typeof animate> | null>(
-      null
-    );
-
-  const limited = images
-    .filter(Boolean)
-    .slice(0, 10);
-
+  const limited = images.filter(Boolean).slice(0, 10);
   const doubled = [...limited, ...limited];
 
   useEffect(() => {
     if (!containerRef.current) return;
-
     const itemW = 200 + 16;
-
-    const totalW =
-      itemW * limited.length;
+    const totalW = itemW * limited.length;
 
     const startLoop = (from: number) => {
-      animRef.current = animate(
-        x,
-        [from, from - totalW],
-        {
-          duration: limited.length * 4,
-          ease: 'linear',
-
-          onComplete: () => {
-            x.set(0);
-            startLoop(0);
-          },
-        }
-      );
+      animRef.current = animate(x, [from, from - totalW], {
+        duration: limited.length * 4,
+        ease: 'linear',
+        onComplete: () => {
+          x.set(0);
+          startLoop(0);
+        },
+      });
     };
 
     startLoop(0);
-
     return () => animRef.current?.stop();
   }, [limited.length]);
 
   return (
     <div className="relative w-full overflow-hidden py-2">
-
       <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#080808] to-transparent z-10 pointer-events-none" />
-
       <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#080808] to-transparent z-10 pointer-events-none" />
-
-      <motion.div
-        ref={containerRef}
-        style={{ x }}
-        className="flex gap-4 w-max"
-      >
+      <motion.div ref={containerRef} style={{ x }} className="flex gap-4 w-max">
         {doubled.map((url, i) => (
           <div
             key={i}
             className="relative overflow-hidden rounded-sm flex-shrink-0"
-            style={{
-              width: 200,
-              height: 130,
-            }}
+            style={{ width: 200, height: 130 }}
           >
+            {/* ✅ إصلاح 1: lazy loading على صور الـ strip */}
             <img
               src={url}
               alt=""
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover opacity-50 hover:opacity-80 transition-opacity duration-500"
             />
           </div>
@@ -152,8 +119,6 @@ function ImageStrip({
 /* ─────────────────────────────────────────────
    FULLSCREEN OVERLAY
 ───────────────────────────────────────────── */
-
-{/* غيّر FullscreenProject بالكامل بالكود ده */}
 
 function FullscreenProject({
   project,
@@ -183,14 +148,14 @@ function FullscreenProject({
   const current = allMedia[currentIndex];
 
   const variants = {
-    zoom: { initial: { scale: 1.6, opacity: 0 }, animate: { scale: 1, opacity: 1 }, exit: { scale: 0.92, opacity: 0 } },
-    circle: { initial: { scale: 0, borderRadius: '100%', opacity: 0 }, animate: { scale: 1, borderRadius: '0%', opacity: 1 }, exit: { scale: 0.4, borderRadius: '100%', opacity: 0 } },
-    slideLeft: { initial: { x: '-140%', opacity: 0 }, animate: { x: 0, opacity: 1 }, exit: { x: '140%', opacity: 0 } },
-    slideRight: { initial: { x: '140%', opacity: 0 }, animate: { x: 0, opacity: 1 }, exit: { x: '-140%', opacity: 0 } },
-    flip: { initial: { rotateY: 120, opacity: 0, scale: 0.8 }, animate: { rotateY: 0, opacity: 1, scale: 1 }, exit: { rotateY: -120, opacity: 0, scale: 0.8 } },
-    reveal: { initial: { clipPath: 'circle(0% at 50% 50%)', opacity: 0 }, animate: { clipPath: 'circle(150% at 50% 50%)', opacity: 1 }, exit: { opacity: 0 } },
-    blur: { initial: { opacity: 0, filter: 'blur(50px)', scale: 1.25 }, animate: { opacity: 1, filter: 'blur(0px)', scale: 1 }, exit: { opacity: 0, filter: 'blur(30px)' } },
-    vertical: { initial: { y: '120%', opacity: 0 }, animate: { y: 0, opacity: 1 }, exit: { y: '-120%', opacity: 0 } },
+    zoom:      { initial: { scale: 1.15, opacity: 0 }, animate: { scale: 1, opacity: 1 }, exit: { scale: 0.96, opacity: 0 } },
+    circle:    { initial: { scale: 0, borderRadius: '100%', opacity: 0 }, animate: { scale: 1, borderRadius: '0%', opacity: 1 }, exit: { scale: 0.4, borderRadius: '100%', opacity: 0 } },
+    slideLeft: { initial: { x: '-100%', opacity: 0 }, animate: { x: 0, opacity: 1 }, exit: { x: '100%', opacity: 0 } },
+    slideRight:{ initial: { x: '100%', opacity: 0 }, animate: { x: 0, opacity: 1 }, exit: { x: '-100%', opacity: 0 } },
+    flip:      { initial: { rotateY: 90, opacity: 0, scale: 0.9 }, animate: { rotateY: 0, opacity: 1, scale: 1 }, exit: { rotateY: -90, opacity: 0, scale: 0.9 } },
+    reveal:    { initial: { clipPath: 'circle(0% at 50% 50%)', opacity: 0 }, animate: { clipPath: 'circle(150% at 50% 50%)', opacity: 1 }, exit: { opacity: 0 } },
+    blur:      { initial: { opacity: 0, filter: 'blur(20px)', scale: 1.08 }, animate: { opacity: 1, filter: 'blur(0px)', scale: 1 }, exit: { opacity: 0, filter: 'blur(10px)' } },
+    vertical:  { initial: { y: '100%', opacity: 0 }, animate: { y: 0, opacity: 1 }, exit: { y: '-100%', opacity: 0 } },
   };
 
   return (
@@ -200,7 +165,8 @@ function FullscreenProject({
         animate="animate"
         exit="exit"
         variants={variants[mode]}
-        transition={{ duration: 8, ease: [0.22, 1, 0.36, 1] }}
+        // ✅ إصلاح 2: من 8 ثواني → 1.2 ثانية
+        transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
         className="fixed inset-0 z-[99998] bg-black cursor-none"
       >
         {/* الصورة/الفيديو مع التقليب */}
@@ -211,32 +177,33 @@ function FullscreenProject({
             variants={{
               enter: (d: number) => ({ x: d > 0 ? '100%' : '-100%', opacity: 0 }),
               center: { x: 0, opacity: 1 },
-              exit: (d: number) => ({ x: d > 0 ? '-100%' : '100%', opacity: 0 }),
+              exit:  (d: number) => ({ x: d > 0 ? '-100%' : '100%', opacity: 0 }),
             }}
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             className="absolute inset-0"
           >
-         {current?.type === 'video' ? (
-  <video
-    src={current.url}
-    autoPlay
-    muted
-    loop
-    className="absolute inset-0 w-full h-full object-contain md:object-cover"
-  />
-) : (
-  <motion.img
-    src={current?.url}
-    alt={project.title}
-    className="absolute inset-0 w-full h-full object-contain md:object-cover"
-    initial={{ scale: 1.4, filter: 'blur(20px)' }}
-    animate={{ scale: 1, filter: 'blur(0px)' }}
-    transition={{ duration: 12, ease: [0.22, 1, 0.36, 1] }}
-  />
-)}
+            {current?.type === 'video' ? (
+              <video
+                src={current.url}
+                autoPlay
+                muted
+                loop
+                className="absolute inset-0 w-full h-full object-contain md:object-cover"
+              />
+            ) : (
+              <motion.img
+                src={current?.url}
+                alt={project.title}
+                // ✅ إصلاح 3: من 12 ثانية → 1.8 ثانية
+                initial={{ scale: 1.06, filter: 'blur(8px)' }}
+                animate={{ scale: 1, filter: 'blur(0px)' }}
+                transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0 w-full h-full object-contain md:object-cover"
+              />
+            )}
           </motion.div>
         </AnimatePresence>
 
@@ -244,11 +211,11 @@ function FullscreenProject({
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 1.8 }}
+          transition={{ duration: 0.8 }}
           className="absolute inset-0 bg-black/45 pointer-events-none"
         />
 
-        {/* Arrows — بس لو في أكتر من صورة */}
+        {/* Arrows */}
         {allMedia.length > 1 && (
           <>
             <button
@@ -260,12 +227,10 @@ function FullscreenProject({
               className="absolute right-8 top-1/2 -translate-y-1/2 w-12 h-12 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:border-white/60 transition-all z-20"
             >→</button>
 
-            {/* Counter */}
             <div className="absolute top-10 left-1/2 -translate-x-1/2 text-white/30 text-xs tracking-widest z-20">
               {currentIndex + 1} / {allMedia.length}
             </div>
 
-            {/* Dots */}
             <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-2 z-20">
               {allMedia.map((_, i) => (
                 <button
@@ -282,42 +247,44 @@ function FullscreenProject({
 
         {/* content */}
         <motion.div
-          initial={{ opacity: 0, y: 80 }}
+          initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 1.6, ease: [0.16, 1, 0.3, 1] }}
+          // ✅ إصلاح 4: delay من 0.8 → 0.4
+          transition={{ delay: 0.4, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           className="absolute bottom-8 left-4 right-4 md:bottom-16 md:left-16 md:right-auto md:max-w-2xl z-10"
         >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 1, duration: 1.2 }}
+            transition={{ delay: 0.5, duration: 0.7 }}
             className="text-white/40 text-xs tracking-[0.35em] uppercase mb-5"
           >
             {project.category}
           </motion.div>
 
+          {/* ✅ إصلاح 5: delay من 2.5 → 0.5، duration من 4 → 0.9 */}
           <motion.h1
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 2.5, duration: 4, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ delay: 0.5, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
             className="text-white text-4xl md:text-7xl font-thin tracking-tight leading-none"
           >
             {project.title}
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.3, duration: 1.5 }}
+            transition={{ delay: 0.65, duration: 0.8 }}
             className="mt-8 text-white/60 text-lg leading-relaxed"
           >
             {project.description}
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.5, duration: 1.2 }}
+            transition={{ delay: 0.75, duration: 0.7 }}
             className="mt-10 flex gap-10 text-white/35 text-sm uppercase tracking-[0.25em]"
           >
             <span>{project.location}</span>
@@ -329,7 +296,7 @@ function FullscreenProject({
         <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.2, duration: 1 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
           onClick={onClose}
           className="absolute top-10 right-10 text-white/50 hover:text-white transition z-20 tracking-[0.3em] text-xs uppercase"
         >
@@ -339,8 +306,9 @@ function FullscreenProject({
     </AnimatePresence>
   );
 }
+
 /* ─────────────────────────────────────────────
-    PROJECT CARD
+   PROJECT CARD
 ───────────────────────────────────────────── */
 
 function ProjectCard({
@@ -354,135 +322,48 @@ function ProjectCard({
   large?: boolean;
   onOpen: (project: Project) => void;
 }) {
-  const cardRef =
-    useRef<HTMLDivElement>(null);
-
-  const [ambientColor, setAmbientColor] =
-    useState('0,0,0');
-
-  const [isHovered, setIsHovered] =
-    useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [ambientColor, setAmbientColor] = useState('0,0,0');
+  const [isHovered, setIsHovered] = useState(false);
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
-  const rotateX = useSpring(
-    useTransform(mouseY, [-0.5, 0.5], [6, -6]),
-    {
-      stiffness: 300,
-      damping: 30,
-    }
-  );
-
-  const rotateY = useSpring(
-    useTransform(mouseX, [-0.5, 0.5], [-6, 6]),
-    {
-      stiffness: 300,
-      damping: 30,
-    }
-  );
-
-  const imgX = useSpring(
-    useTransform(mouseX, [-0.5, 0.5], [-12, 12]),
-    {
-      stiffness: 200,
-      damping: 25,
-    }
-  );
-
-  const imgY = useSpring(
-    useTransform(mouseY, [-0.5, 0.5], [-12, 12]),
-    {
-      stiffness: 200,
-      damping: 25,
-    }
-  );
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [6, -6]), { stiffness: 300, damping: 30 });
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-6, 6]), { stiffness: 300, damping: 30 });
+  const imgX = useSpring(useTransform(mouseX, [-0.5, 0.5], [-12, 12]), { stiffness: 200, damping: 25 });
+  const imgY = useSpring(useTransform(mouseY, [-0.5, 0.5], [-12, 12]), { stiffness: 200, damping: 25 });
 
   useEffect(() => {
     if (!project.cover_image) return;
-
     const img = new Image();
-
     img.crossOrigin = 'anonymous';
-
-    img.src =
-      project.cover_image + '?t=1';
-
+    img.src = project.cover_image + '?t=1';
     img.onload = () => {
       try {
-        const canvas =
-          document.createElement('canvas');
-
+        const canvas = document.createElement('canvas');
         canvas.width = 50;
         canvas.height = 50;
-
-        const ctx =
-          canvas.getContext('2d');
-
+        const ctx = canvas.getContext('2d');
         if (!ctx) return;
-
         ctx.drawImage(img, 0, 0, 50, 50);
-
-        const data = ctx.getImageData(
-          0,
-          0,
-          50,
-          50
-        ).data;
-
-        let r = 0;
-        let g = 0;
-        let b = 0;
-        let count = 0;
-
-        for (
-          let i = 0;
-          i < data.length;
-          i += 4
-        ) {
-          if (
-            data[i] +
-              data[i + 1] +
-              data[i + 2] >
-            30
-          ) {
-            r += data[i];
-            g += data[i + 1];
-            b += data[i + 2];
-            count++;
+        const data = ctx.getImageData(0, 0, 50, 50).data;
+        let r = 0, g = 0, b = 0, count = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i] + data[i + 1] + data[i + 2] > 30) {
+            r += data[i]; g += data[i + 1]; b += data[i + 2]; count++;
           }
         }
-
-        if (count > 0) {
-          setAmbientColor(
-            `${Math.round(r / count)},${Math.round(
-              g / count
-            )},${Math.round(b / count)}`
-          );
-        }
+        if (count > 0) setAmbientColor(`${Math.round(r/count)},${Math.round(g/count)},${Math.round(b/count)}`);
       } catch {}
     };
   }, [project.cover_image]);
 
-  const handleMouseMove = (
-    e: React.MouseEvent<HTMLDivElement>
-  ) => {
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
-
-    const rect =
-      cardRef.current.getBoundingClientRect();
-
-    mouseX.set(
-      (e.clientX - rect.left) /
-        rect.width -
-        0.5
-    );
-
-    mouseY.set(
-      (e.clientY - rect.top) /
-        rect.height -
-        0.5
-    );
+    const rect = cardRef.current.getBoundingClientRect();
+    mouseX.set((e.clientX - rect.left) / rect.width - 0.5);
+    mouseY.set((e.clientY - rect.top) / rect.height - 0.5);
   };
 
   const handleMouseLeave = () => {
@@ -494,85 +375,44 @@ function ProjectCard({
   return (
     <motion.div
       ref={cardRef}
-      initial={{
-        opacity: 0,
-        y: 80,
-      }}
-      whileInView={{
-        opacity: 1,
-        y: 0,
-      }}
-      viewport={{
-        once: true,
-        margin: '-80px',
-      }}
-      transition={{
-        duration: 1,
-        ease: [0.16, 1, 0.3, 1],
-        delay: index * 0.08,
-      }}
+      initial={{ opacity: 0, y: 60 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: index * 0.06 }}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={handleMouseLeave}
-      style={{
-        rotateX,
-        rotateY,
-        transformStyle: 'preserve-3d',
-        perspective: 1000,
-      }}
+      style={{ rotateX, rotateY, transformStyle: 'preserve-3d', perspective: 1000 }}
       className="relative group cursor-pointer"
       onClick={() => onOpen(project)}
     >
-
       <motion.div
-        animate={{
-          opacity: isHovered ? 0.4 : 0,
-          scale: isHovered ? 1 : 0.8,
-        }}
-        transition={{
-          duration: 0.5,
-        }}
-        style={{
-          background: `radial-gradient(ellipse at center, rgb(${ambientColor}), transparent 70%)`,
-        }}
+        animate={{ opacity: isHovered ? 0.4 : 0, scale: isHovered ? 1 : 0.8 }}
+        transition={{ duration: 0.5 }}
+        style={{ background: `radial-gradient(ellipse at center, rgb(${ambientColor}), transparent 70%)` }}
         className="absolute -inset-8 rounded-full blur-3xl pointer-events-none z-0"
       />
 
       <div className="relative z-10 overflow-hidden">
-
-        <div
-          className={`relative overflow-hidden ${
-            large
-              ? 'aspect-[16/9]'
-              : 'aspect-[4/3]'
-          }`}
-        >
-
+        <div className={`relative overflow-hidden ${large ? 'aspect-[16/9]' : 'aspect-[4/3]'}`}>
           {project.cover_image ? (
             <motion.img
               src={project.cover_image}
               alt={project.title}
-              style={{
-                x: imgX,
-                y: imgY,
-                scale: 1.12,
-              }}
+              // ✅ إصلاح 6: lazy loading على صور الكارد
+              loading={index === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+              style={{ x: imgX, y: imgY, scale: 1.12 }}
               className="w-full h-full object-cover"
             />
           ) : (
             <div className="w-full h-full bg-white/5 flex items-center justify-center">
-              <span className="text-white/20 text-xs tracking-widest uppercase">
-                No Image
-              </span>
+              <span className="text-white/20 text-xs tracking-widest uppercase">No Image</span>
             </div>
           )}
 
           <motion.div
-            animate={{
-              opacity: isHovered
-                ? 0.15
-                : 0.45,
-            }}
+            animate={{ opacity: isHovered ? 0.15 : 0.45 }}
             className="absolute inset-0 bg-black"
           />
 
@@ -582,13 +422,8 @@ function ProjectCard({
 
           {large && (
             <motion.div
-              animate={{
-                opacity: isHovered ? 1 : 0,
-                y: isHovered ? 0 : 10,
-              }}
-              transition={{
-                duration: 0.4,
-              }}
+              animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 0 : 10 }}
+              transition={{ duration: 0.4 }}
               className="absolute bottom-6 left-6 right-6"
             >
               <p className="text-white/60 text-sm font-light leading-relaxed line-clamp-2">
@@ -599,44 +434,30 @@ function ProjectCard({
         </div>
 
         <div className="pt-5 flex items-end justify-between">
-
           <motion.h3
-            animate={{
-              x: isHovered ? 8 : 0,
-            }}
-            transition={{
-              duration: 0.3,
-            }}
-            className={`text-white/90 font-light tracking-wide ${
-              large
-                ? 'text-2xl'
-                : 'text-xl'
-            }`}
+            animate={{ x: isHovered ? 8 : 0 }}
+            transition={{ duration: 0.3 }}
+            className={`text-white/90 font-light tracking-wide ${large ? 'text-2xl' : 'text-xl'}`}
           >
             {project.title}
           </motion.h3>
-
-          <span className="text-white/30 text-xs tracking-widest">
-            {project.year}
-          </span>
+          <span className="text-white/30 text-xs tracking-widest">{project.year}</span>
         </div>
 
         <motion.div
-          animate={{
-            scaleX: isHovered ? 1 : 0,
-          }}
-          transition={{
-            duration: 0.4,
-          }}
-          style={{
-            originX: 0,
-          }}
+          animate={{ scaleX: isHovered ? 1 : 0 }}
+          transition={{ duration: 0.4 }}
+          style={{ originX: 0 }}
           className="mt-3 h-[1px] bg-white/20"
         />
       </div>
     </motion.div>
   );
 }
+
+/* ─────────────────────────────────────────────
+   AUTO SCROLL CATEGORIES
+───────────────────────────────────────────── */
 
 function AutoScrollCategories({
   categories,
@@ -653,10 +474,9 @@ function AutoScrollCategories({
   const ITEM_W = typeof window !== 'undefined' && window.innerWidth < 768 ? 120 : 180;
   const totalW = ITEM_W * categories.length;
 
-  // كرر الـ categories عدد كفاية عشان يملى الشاشة من الأول
- const repeated = Array(Math.max(8, Math.ceil(2000 / (ITEM_W * categories.length)) * categories.length))
-  .fill(categories)
-  .flat();
+  const repeated = Array(Math.max(8, Math.ceil(2000 / (ITEM_W * categories.length)) * categories.length))
+    .fill(categories)
+    .flat();
 
   const startLoop = (from: number) => {
     animRef.current?.stop();
@@ -685,13 +505,9 @@ function AutoScrollCategories({
         drag="x"
         dragConstraints={{ left: -totalW * 3, right: 0 }}
         dragElastic={0}
-        onDragStart={() => {
-          isDragging.current = true;
-          animRef.current?.stop();
-        }}
+        onDragStart={() => { isDragging.current = true; animRef.current?.stop(); }}
         onDragEnd={() => {
           setTimeout(() => { isDragging.current = false; }, 100);
-          // يكمل من نفس المكان اللي وقف فيه
           startLoop(x.get());
         }}
         className="flex gap-4 w-max cursor-grab active:cursor-grabbing"
@@ -720,7 +536,6 @@ function AutoScrollCategories({
     </div>
   );
 }
-
 
 /* ─────────────────────────────────────────────
    MAIN SECTION
@@ -801,7 +616,6 @@ export default function ProjectsSection() {
   return (
     <>
       <section id="work" className="relative pt-16 pb-32 px-16">
-
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -816,19 +630,17 @@ export default function ProjectsSection() {
           <span className="text-white/20 text-xs tracking-widest">( {filtered.length} )</span>
         </motion.div>
 
- {/* Category Filter — auto-scrolling */}
-{categories.length > 1 && (
-  <div style={{ marginTop: '4rem', marginBottom: '5rem', position: 'relative' }}>
-    <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-[#080808] to-transparent z-10 pointer-events-none" />
-    <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-[#080808] to-transparent z-10 pointer-events-none" />
-    <AutoScrollCategories
-      categories={categories}
-      activeFilter={activeFilter}
-      setActiveFilter={setActiveFilter}
-    />
-  </div>
-)}
-
+        {categories.length > 1 && (
+          <div style={{ marginTop: '4rem', marginBottom: '5rem', position: 'relative' }}>
+            <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-[#080808] to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-[#080808] to-transparent z-10 pointer-events-none" />
+            <AutoScrollCategories
+              categories={categories}
+              activeFilter={activeFilter}
+              setActiveFilter={setActiveFilter}
+            />
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center h-64">
